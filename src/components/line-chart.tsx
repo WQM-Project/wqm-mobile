@@ -7,7 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 export type ChartPoint = { t: number; value: number };
 
-// Minimal time-series line: min/max labels on the left, start/end times below.
+// Minimal time-series line: max above, min below, start/end times at the bottom.
 export function LineChart({
   points,
   height = 160,
@@ -43,10 +43,7 @@ export function LineChart({
 
   return (
     <View>
-      <View style={styles.axisRow}>
-        <ThemedText type="code" themeColor="textSecondary">max {format(max)}</ThemedText>
-        <ThemedText type="code" themeColor="textSecondary">min {format(min)}</ThemedText>
-      </View>
+      <ThemedText type="code" themeColor="textSecondary">max {format(max)}</ThemedText>
       <View onLayout={onLayout} style={{ height }}>
         {width > 0 && (
           <Svg width={width} height={height}>
@@ -63,6 +60,7 @@ export function LineChart({
           </Svg>
         )}
       </View>
+      <ThemedText type="code" themeColor="textSecondary">min {format(min)}</ThemedText>
       <View style={styles.axisRow}>
         <ThemedText type="code" themeColor="textSecondary">{timeFormat(t0)}</ThemedText>
         <ThemedText type="code" themeColor="textSecondary">{timeFormat(last.t)}</ThemedText>

@@ -10,6 +10,8 @@ import { useReadings } from '@/lib/api';
 import { METRICS, agoLabel, dateLabel, formatValue } from '@/lib/metrics';
 import { isStale, latestBoatPosition } from '@/lib/position';
 
+const QUIET_AFTER_MS = 10 * 60000;
+
 export default function OverviewScreen() {
   const { data } = useReadings();
   const readings = data?.readings ?? [];
@@ -53,8 +55,12 @@ export default function OverviewScreen() {
 
 function StatusCard({ readings }: { readings: NonNullable<ReturnType<typeof useReadings>['data']>['readings'] }) {
   const theme = useTheme();
+  // Ages are measured against the last fetch, which refreshes every minute.
+  const { dataUpdatedAt: now } = useReadings();
   const latest = readings[readings.length - 1];
   const position = latestBoatPosition(readings);
+  // Amber once the boat has been quiet for longer than a few missed readings.
+  const quiet = now - Date.parse(latest.recorded_at) > QUIET_AFTER_MS;
   const gps = !position
     ? { text: 'GPS pending', color: theme.textSecondary }
     : isStale(position)
@@ -63,8 +69,10 @@ function StatusCard({ readings }: { readings: NonNullable<ReturnType<typeof useR
   return (
     <Card>
       <View style={styles.statusRow}>
-        <View style={[styles.dot, { backgroundColor: theme.accent }]} />
-        <ThemedText type="smallBold">Last packet {agoLabel(latest.recorded_at)}</ThemedText>
+        <View style={[styles.dot, { backgroundColor: quiet ? theme.warning : theme.accent }]} />
+        <ThemedText type="smallBold" style={quiet ? { color: theme.warning } : undefined}>
+          Last packet {agoLabel(latest.recorded_at, now)}
+        </ThemedText>
       </View>
       <View style={styles.statusRow}>
         <View style={[styles.dot, { backgroundColor: gps.color }]} />
