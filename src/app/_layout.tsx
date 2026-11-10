@@ -8,11 +8,12 @@ import {
 } from '@expo-google-fonts/nunito';
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { AppState, Platform, useColorScheme } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AppTabs from '@/components/app-tabs';
 import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // One client for the whole app: every screen shares the same cached readings.
 const queryClient = new QueryClient({
@@ -46,7 +47,13 @@ export default function RootLayout() {
         <ThemeProvider
           value={{
             ...base,
-            colors: { ...base.colors, background: colors.background, card: colors.background, text: colors.text, primary: colors.accent },
+            colors: {
+              ...base.colors,
+              background: colors.background,
+              card: colors.background,
+              text: colors.text,
+              primary: colors.accent,
+            },
           }}>
           <AppTabs />
         </ThemeProvider>

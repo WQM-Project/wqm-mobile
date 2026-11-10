@@ -1,7 +1,7 @@
 import { NativeTabs } from 'expo-router/native-tabs';
-import { useColorScheme } from 'react-native';
 
 import { Fonts } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const TABS = [
   { name: 'index', label: 'Overview', md: 'water_drop', sf: 'drop' },

@@ -5,7 +5,7 @@ import { useTheme } from '@/hooks/use-theme';
 import type { BoatPosition, TrackPoint } from '@/lib/position';
 
 // react-native-maps has no web support; the browser preview shows coordinates only.
-export function BoatMap({ position }: { position?: BoatPosition; track?: TrackPoint[] }) {
+export function BoatMap({ position }: { position?: BoatPosition; track?: TrackPoint[]; mapType?: string }) {
   const theme = useTheme();
   return (
     <View style={[styles.box, { backgroundColor: theme.backgroundSelected }]}>

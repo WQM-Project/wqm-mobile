@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { BoatMap } from '@/components/boat-map';
+import { BoatMap, type MapStyle } from '@/components/boat-map';
 import { Card } from '@/components/card';
-import { DatePicker, chosenDay } from '@/components/chip';
+import { Chip, DatePicker, chosenDay } from '@/components/chip';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -15,9 +16,18 @@ import { boatTrack, isStale, latestBoatPosition, trackLength } from '@/lib/posit
 
 const DAY_MS = 24 * 3600000;
 
+// Google map views. Satellite and hybrid show the real river and banks.
+const VIEWS: { value: MapStyle; label: string }[] = [
+  { value: 'standard', label: 'Normal' },
+  { value: 'satellite', label: 'Satellite' },
+  { value: 'terrain', label: 'Terrain' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+
 export default function MapScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ day?: string }>();
+  const [view, setView] = useState<MapStyle>('standard');
   const { data } = useReadings();
   const readings = data?.readings ?? [];
   const day = chosenDay(params.day, readingDays(readings));
@@ -34,16 +44,22 @@ export default function MapScreen() {
   return (
     <Screen
       title="Boat location"
-      subtitle={
-        day ? `Track on ${dayLabel(day, true)}` : position ? 'Path over the last 24 h of data' : 'GPS pending'
-      }>
+      subtitle={day ? `Track on ${dayLabel(day, true)}` : position ? 'Path over the last 24 h of data' : 'GPS pending'}>
       <DatePicker day={day} days={readingDays(readings)} onChange={(d) => router.setParams({ day: d })} />
       {/* A new key refits the map whenever the track changes. */}
-      <BoatMap key={`${day ?? 'latest'}-${track.length}`} position={position} track={track} />
+      <View style={styles.views}>
+        {VIEWS.map((v) => (
+          <Chip key={v.value} label={v.label} active={v.value === view} onPress={() => setView(v.value)} />
+        ))}
+      </View>
+      <BoatMap key={`${day ?? 'latest'}-${track.length}`} position={position} track={track} mapType={view} />
 
       {track.length > 1 && (
         <View style={styles.stats}>
-          <Stat label="Distance" value={metres >= 1000 ? `${(metres / 1000).toFixed(2)} km` : `${Math.round(metres)} m`} />
+          <Stat
+            label="Distance"
+            value={metres >= 1000 ? `${(metres / 1000).toFixed(2)} km` : `${Math.round(metres)} m`}
+          />
           <Stat label="GPS fixes" value={String(track.length)} />
           <Stat label="From" value={`${timeLabel(track[0].t)}`} />
           <Stat label="To" value={`${timeLabel(track[track.length - 1].t)} IST`} />
@@ -61,7 +77,8 @@ export default function MapScreen() {
             </ThemedText>
             {isStale(position) && (
               <ThemedText type="small" style={{ color: theme.warning }}>
-                Position was {Math.round((position.fixAgeSeconds ?? 0) / 60)} min old when sent; the boat may have moved.
+                Position was {Math.round((position.fixAgeSeconds ?? 0) / 60)} min old when sent; the boat may have
+                moved.
               </ThemedText>
             )}
             <Pressable
@@ -102,6 +119,7 @@ const coordinate = (value: number, positive: string, negative: string) =>
   `${Math.abs(value).toFixed(6)}° ${value >= 0 ? positive : negative}`;
 
 const styles = StyleSheet.create({
+  views: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   stat: { width: '48.5%', gap: 2 },
 });

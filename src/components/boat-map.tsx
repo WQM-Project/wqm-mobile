@@ -4,13 +4,24 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useTheme } from '@/hooks/use-theme';
 import { CAMPUS_REFERENCE, bearing, type BoatPosition, type TrackPoint } from '@/lib/position';
 
+// Google map views offered on the Map tab.
+export type MapStyle = 'standard' | 'satellite' | 'terrain' | 'hybrid';
+
 // Top-down boat, bow up; Metro picks the @2x/@3x file for the screen density.
 const BOAT = require('@/assets/images/boat-marker.png');
 
 // Android/iOS map. Expo Go needs no API key; store builds need one (see README).
 // Draws the GPS track as a line, a small dot where it starts and the boat at
 // the newest position. Change the `key` to refit the view to a new track.
-export function BoatMap({ position, track = [] }: { position?: BoatPosition; track?: TrackPoint[] }) {
+export function BoatMap({
+  position,
+  track = [],
+  mapType = 'standard',
+}: {
+  position?: BoatPosition;
+  track?: TrackPoint[];
+  mapType?: MapStyle;
+}) {
   const theme = useTheme();
   const points = track.length ? track : position ? [position] : [CAMPUS_REFERENCE];
   const lats = points.map((p) => p.latitude);
@@ -27,7 +38,13 @@ export function BoatMap({ position, track = [] }: { position?: BoatPosition; tra
   const heading = track.length > 1 ? bearing(track[track.length - 2], track[track.length - 1]) : 0;
 
   return (
-    <MapView style={styles.map} initialRegion={region} toolbarEnabled={false}>
+    // Always the light map: the app keeps its white look even in phone dark mode.
+    <MapView
+      style={styles.map}
+      initialRegion={region}
+      toolbarEnabled={false}
+      userInterfaceStyle="light"
+      mapType={mapType}>
       {track.length > 1 && (
         <>
           {/* A wide pale halo under a navy line keeps the path readable on any tile. */}
