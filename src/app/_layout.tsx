@@ -1,6 +1,15 @@
+import {
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/nunito';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AppTabs from '@/components/app-tabs';
 import { Colors } from '@/constants/theme';
@@ -11,18 +20,30 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
   const colors = Colors[scheme];
+  // Keep the splash screen up until the fonts are ready (a fraction of a second).
+  if (!fontsLoaded) return null;
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        value={{
-          ...base,
-          colors: { ...base.colors, background: colors.background, card: colors.background, text: colors.text, primary: colors.accent },
-        }}>
-        <AppTabs />
-      </ThemeProvider>
-    </QueryClientProvider>
+    // Needed once at the root for the chart's pinch and pan gestures.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider
+          value={{
+            ...base,
+            colors: { ...base.colors, background: colors.background, card: colors.background, text: colors.text, primary: colors.accent },
+          }}>
+          <AppTabs />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

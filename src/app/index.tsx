@@ -1,25 +1,43 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/card';
+import { DatePicker, chosenDay } from '@/components/chip';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useReadings } from '@/lib/api';
-import { METRICS, agoLabel, dateLabel, formatValue } from '@/lib/metrics';
+import { tick } from '@/lib/haptics';
+import { METRICS, agoLabel, dateLabel, dayKey, dayLabel, formatValue, readingDays, timeLabel } from '@/lib/metrics';
 import { isStale, latestBoatPosition } from '@/lib/position';
+import type { Reading } from '@/lib/types';
 
 const QUIET_AFTER_MS = 10 * 60000;
 
 export default function OverviewScreen() {
+  // The chosen day lives in the route (?day=2026-11-06) so Trends can share it.
+  const params = useLocalSearchParams<{ day?: string }>();
   const { data } = useReadings();
   const readings = data?.readings ?? [];
-  const latest = readings.at(-1);
+  const day = chosenDay(params.day, readingDays(readings));
+  const shown = day ? readings.filter((r) => dayKey(r.recorded_at) === day) : readings;
+  const latest = shown.at(-1);
+  const picker = readings.length > 0 && (
+    <DatePicker day={day} days={readingDays(readings)} onChange={(d) => router.setParams({ day: d })} />
+  );
 
   return (
     <Screen title="WQM" subtitle="River water quality, Boat 01">
-      {!latest ? (
+      {picker}
+      {day && !latest ? (
+        <Card>
+          <ThemedText type="smallBold">No readings on {dayLabel(day, true)}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            The boat did not upload any packets that day. Pick another date or go back to Latest.
+          </ThemedText>
+        </Card>
+      ) : !latest ? (
         <Card>
           <ThemedText type="smallBold">No readings yet</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
@@ -28,13 +46,16 @@ export default function OverviewScreen() {
         </Card>
       ) : (
         <>
-          <StatusCard readings={readings} />
+          {day ? <DayCard day={day} readings={shown} /> : <StatusCard readings={readings} />}
           <View style={styles.grid}>
             {METRICS.map((metric) => (
               <Pressable
                 key={metric.key}
                 style={({ pressed }) => [styles.cell, pressed && styles.pressed]}
-                onPress={() => router.push({ pathname: '/trends', params: { metric: metric.key } })}>
+                onPress={() => {
+                  tick();
+                  router.push({ pathname: '/trends', params: day ? { metric: metric.key, day } : { metric: metric.key } });
+                }}>
                 <Card style={styles.metricCard}>
                   <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
                     {metric.label}
@@ -45,7 +66,8 @@ export default function OverviewScreen() {
             ))}
           </View>
           <ThemedText type="small" themeColor="textSecondary" style={styles.footnote}>
-            Latest packet received {dateLabel(latest.recorded_at)}. Tap a reading for its trend.
+            {day ? 'Last reading of the day' : 'Latest packet'} received {dateLabel(latest.recorded_at)}. Tap a
+            reading for its trend.
           </ThemedText>
         </>
       )}
@@ -53,7 +75,7 @@ export default function OverviewScreen() {
   );
 }
 
-function StatusCard({ readings }: { readings: NonNullable<ReturnType<typeof useReadings>['data']>['readings'] }) {
+function StatusCard({ readings }: { readings: Reading[] }) {
   const theme = useTheme();
   // Ages are measured against the last fetch, which refreshes every minute.
   const { dataUpdatedAt: now } = useReadings();
@@ -80,6 +102,25 @@ function StatusCard({ readings }: { readings: NonNullable<ReturnType<typeof useR
       </View>
       <ThemedText type="small" themeColor="textSecondary">
         {readings.length} packets loaded. Pull down to refresh.
+      </ThemedText>
+    </Card>
+  );
+}
+
+// Summary for a past day: when the boat reported and how often.
+function DayCard({ day, readings }: { day: string; readings: Reading[] }) {
+  const theme = useTheme();
+  const first = readings[0].recorded_at;
+  const last = readings[readings.length - 1].recorded_at;
+  return (
+    <Card>
+      <View style={styles.statusRow}>
+        <View style={[styles.dot, { backgroundColor: theme.accent }]} />
+        <ThemedText type="smallBold">Viewing {dayLabel(day, true)}</ThemedText>
+      </View>
+      <ThemedText type="small" themeColor="textSecondary">
+        {readings.length} {readings.length === 1 ? 'packet' : 'packets'} between {timeLabel(first)} and{' '}
+        {timeLabel(last)} IST. Values below are the last reading of the day.
       </ThemedText>
     </Card>
   );

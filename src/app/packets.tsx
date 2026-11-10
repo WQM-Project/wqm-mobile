@@ -1,25 +1,35 @@
 import * as Clipboard from 'expo-clipboard';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/card';
+import { DatePicker, chosenDay } from '@/components/chip';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useReadings } from '@/lib/api';
-import { dateLabel } from '@/lib/metrics';
+import { exportReadings } from '@/lib/export';
+import { bump } from '@/lib/haptics';
+import { dateLabel, dayKey, dayLabel, readingDays } from '@/lib/metrics';
 import type { Reading } from '@/lib/types';
 
 const PAGE = 25;
 
 export default function PacketsScreen() {
+  const params = useLocalSearchParams<{ day?: string }>();
   const { data } = useReadings();
   const [shown, setShown] = useState(PAGE);
-  const newestFirst = [...(data?.readings ?? [])].reverse();
+  const readings = data?.readings ?? [];
+  const day = chosenDay(params.day, readingDays(readings));
+  const inView = day ? readings.filter((r) => dayKey(r.recorded_at) === day) : readings;
+  const newestFirst = [...inView].reverse();
 
   return (
     <Screen title="Packets" subtitle="Stored packets, newest first. Tap one to inspect it.">
+      <DatePicker day={day} days={readingDays(readings)} onChange={(d) => router.setParams({ day: d })} />
+      <ExportCard readings={inView} day={day} truncated={!day && !!data?.truncated} />
       {newestFirst.slice(0, shown).map((reading) => (
         <PacketRow key={reading.packet_id} reading={reading} />
       ))}
@@ -29,6 +39,66 @@ export default function PacketsScreen() {
         </Pressable>
       )}
     </Screen>
+  );
+}
+
+// Save the packets in view as a CSV spreadsheet via the share sheet.
+function ExportCard({ readings, day, truncated }: { readings: Reading[]; day?: string; truncated: boolean }) {
+  const theme = useTheme();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function run() {
+    bump();
+    setBusy(true);
+    setMessage(null);
+    try {
+      await exportReadings(readings, day ? 'day' : 'all');
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Export failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <View style={styles.row}>
+        <View style={styles.exportText}>
+          <ThemedText type="smallBold">{day ? `Export ${dayLabel(day, true)}` : 'Export all data'}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {readings.length} {readings.length === 1 ? 'packet' : 'packets'} as a CSV spreadsheet. Save it to Files or
+            Drive, or send it on.
+          </ThemedText>
+        </View>
+        <Pressable
+          onPress={run}
+          disabled={busy || !readings.length}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.exportButton,
+            { backgroundColor: theme.accent, opacity: !readings.length ? 0.4 : pressed ? 0.75 : 1 },
+          ]}>
+          {busy ? (
+            <ActivityIndicator color={theme.background} />
+          ) : (
+            <ThemedText type="smallBold" style={{ color: theme.background }}>
+              Export
+            </ThemedText>
+          )}
+        </Pressable>
+      </View>
+      {truncated && (
+        <ThemedText type="small" themeColor="textSecondary">
+          The app loads the newest 500 packets. The web dashboard has the full history.
+        </ThemedText>
+      )}
+      {message && (
+        <ThemedText type="small" style={{ color: theme.warning }}>
+          {message}
+        </ThemedText>
+      )}
+    </Card>
   );
 }
 
@@ -82,4 +152,13 @@ const styles = StyleSheet.create({
   detail: { gap: Spacing.two, marginTop: Spacing.one },
   json: { borderRadius: 10, padding: Spacing.three },
   more: { alignSelf: 'center', padding: Spacing.three },
+  exportText: { flex: 1, gap: 2 },
+  exportButton: {
+    borderRadius: 999,
+    paddingHorizontal: Spacing.four,
+    height: 44,
+    minWidth: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
