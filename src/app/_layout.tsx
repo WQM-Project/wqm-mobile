@@ -6,9 +6,9 @@ import {
   Nunito_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/nunito';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { AppState, Platform, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AppTabs from '@/components/app-tabs';
@@ -18,6 +18,13 @@ import { Colors } from '@/constants/theme';
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 2, staleTime: 30000 } },
 });
+
+// React Query can't see app focus on a phone by itself. Tell it, so the
+// minute-by-minute refresh pauses in the background (saves battery and data)
+// and catches up as soon as the app is opened again.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => focusManager.setFocused(state === 'active'));
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
