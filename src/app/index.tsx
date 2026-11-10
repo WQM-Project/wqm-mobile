@@ -128,7 +128,8 @@ function DayCard({ day, readings }: { day: string; readings: Reading[] }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  cell: { width: '48.5%' },
+  // Two per row at any screen width: each grows to fill, gaps included.
+  cell: { flexGrow: 1, flexBasis: '40%' },
   pressed: { opacity: 0.7 },
   metricCard: { minHeight: 88, justifyContent: 'space-between' },
   value: { fontSize: 22, lineHeight: 28, fontWeight: 700 },

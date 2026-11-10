@@ -7,7 +7,18 @@ import { useTheme } from '@/hooks/use-theme';
 import { tick } from '@/lib/haptics';
 import { dayKey, dayLabel } from '@/lib/metrics';
 
-export function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+export function Chip({
+  label,
+  active,
+  onPress,
+  fill,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  /** Share a row equally with the other chips instead of sizing to the text. */
+  fill?: boolean;
+}) {
   const theme = useTheme();
   return (
     <Pressable
@@ -19,9 +30,10 @@ export function Chip({ label, active, onPress }: { label: string; active: boolea
       accessibilityState={{ selected: active }}
       style={[
         styles.chip,
+        fill && styles.fill,
         { borderColor: active ? theme.accent : theme.border, backgroundColor: active ? theme.accent : 'transparent' },
       ]}>
-      <ThemedText type="small" style={{ color: active ? theme.background : theme.text }}>
+      <ThemedText type="small" numberOfLines={1} style={{ color: active ? theme.background : theme.text }}>
         {label}
       </ThemedText>
     </Pressable>
@@ -220,6 +232,7 @@ function NavButton({ label, disabled, onPress }: { label: string; disabled?: boo
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.two },
+  fill: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, alignItems: 'center', paddingHorizontal: Spacing.one },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: Spacing.three, paddingVertical: Spacing.one + 2 },
   backdrop: {
     flex: 1,

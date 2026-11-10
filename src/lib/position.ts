@@ -4,8 +4,6 @@ import type { Reading } from './types';
 // when the gateway sent them are labelled as possibly outdated.
 export const STALE_FIX_SECONDS = 120;
 
-// Approximate IIT Mandi North Campus, shown until the first GPS packet arrives.
-export const CAMPUS_REFERENCE = { latitude: 31.78129, longitude: 76.9975 };
 
 export type BoatPosition = {
   latitude: number;

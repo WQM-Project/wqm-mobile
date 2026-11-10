@@ -1,33 +1,27 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { BoatMap, type MapStyle } from '@/components/boat-map';
 import { Card } from '@/components/card';
-import { Chip, DatePicker, chosenDay } from '@/components/chip';
+import { DatePicker, chosenDay } from '@/components/chip';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { TrackView } from '@/components/track-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useReadings } from '@/lib/api';
+import { API_URL, useReadings } from '@/lib/api';
 import { tick } from '@/lib/haptics';
 import { agoLabel, dateLabel, dayKey, dayLabel, readingDays, timeLabel } from '@/lib/metrics';
 import { boatTrack, isStale, latestBoatPosition, trackLength } from '@/lib/position';
 
 const DAY_MS = 24 * 3600000;
 
-// Google map views. Satellite and hybrid show the real river and banks.
-const VIEWS: { value: MapStyle; label: string }[] = [
-  { value: 'standard', label: 'Normal' },
-  { value: 'satellite', label: 'Satellite' },
-  { value: 'terrain', label: 'Terrain' },
-  { value: 'hybrid', label: 'Hybrid' },
-];
+// The app draws the GPS path itself (no map service or API key). For a real
+// map with satellite views, it links to the web dashboard or the Maps app.
+const DASHBOARD_URL = `${API_URL}/dashboard`;
 
 export default function MapScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ day?: string }>();
-  const [view, setView] = useState<MapStyle>('standard');
   const { data } = useReadings();
   const readings = data?.readings ?? [];
   const day = chosenDay(params.day, readingDays(readings));
@@ -46,13 +40,16 @@ export default function MapScreen() {
       title="Boat location"
       subtitle={day ? `Track on ${dayLabel(day, true)}` : position ? 'Path over the last 24 h of data' : 'GPS pending'}>
       <DatePicker day={day} days={readingDays(readings)} onChange={(d) => router.setParams({ day: d })} />
-      {/* A new key refits the map whenever the track changes. */}
-      <View style={styles.views}>
-        {VIEWS.map((v) => (
-          <Chip key={v.value} label={v.label} active={v.value === view} onPress={() => setView(v.value)} />
-        ))}
+      <TrackView position={position} track={track} />
+      <View style={styles.links}>
+        <LinkButton label="Full map on dashboard" primary onPress={() => Linking.openURL(DASHBOARD_URL)} />
+        {position && (
+          <LinkButton
+            label="Open in Maps app"
+            onPress={() => Linking.openURL(`https://maps.google.com/?q=${position.latitude},${position.longitude}`)}
+          />
+        )}
       </View>
-      <BoatMap key={`${day ?? 'latest'}-${track.length}`} position={position} track={track} mapType={view} />
 
       {track.length > 1 && (
         <View style={styles.stats}>
@@ -81,26 +78,37 @@ export default function MapScreen() {
                 moved.
               </ThemedText>
             )}
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => {
-                tick();
-                void Linking.openURL(`https://maps.google.com/?q=${position.latitude},${position.longitude}`);
-              }}>
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                Open in Google Maps
-              </ThemedText>
-            </Pressable>
           </>
         ) : (
           <ThemedText type="small" themeColor="textSecondary">
             {day
               ? `No GPS positions on ${dayLabel(day, true)}. Pick another date or go back to Latest.`
-              : 'No packet has a GPS position yet. The map shows the IIT Mandi North Campus reference until the gateway reports a settled fix.'}
+              : 'No packet has a GPS position yet. The path appears here once the gateway reports a settled fix.'}
           </ThemedText>
         )}
       </Card>
     </Screen>
+  );
+}
+
+function LinkButton({ label, onPress, primary }: { label: string; onPress: () => unknown; primary?: boolean }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={() => {
+        tick();
+        void onPress();
+      }}
+      style={({ pressed }) => [
+        styles.link,
+        primary ? { backgroundColor: theme.accent } : { borderWidth: 1, borderColor: theme.border },
+        pressed && { opacity: 0.75 },
+      ]}>
+      <ThemedText type="smallBold" numberOfLines={1} style={{ color: primary ? theme.background : theme.accent }}>
+        {label}
+      </ThemedText>
+    </Pressable>
   );
 }
 
@@ -119,7 +127,16 @@ const coordinate = (value: number, positive: string, negative: string) =>
   `${Math.abs(value).toFixed(6)}° ${value >= 0 ? positive : negative}`;
 
 const styles = StyleSheet.create({
-  views: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  links: { flexDirection: 'row', gap: Spacing.two },
+  link: {
+    flexGrow: 1,
+    flexBasis: 0,
+    height: 44,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+  },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  stat: { width: '48.5%', gap: 2 },
+  stat: { flexGrow: 1, flexBasis: '40%', gap: 2 },
 });

@@ -177,7 +177,9 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
 const styles = StyleSheet.create({
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   tile: {
-    width: '31.8%',
+    // Three per row at any screen width: each grows to fill, gaps included.
+    flexGrow: 1,
+    flexBasis: '28%',
     height: 40,
     borderRadius: 12,
     alignItems: 'center',
