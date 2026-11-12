@@ -114,17 +114,25 @@ function PacketRow({ reading }: { reading: Reading }) {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  const hasGps = payload.gps_fix === true || (typeof payload.gps_fix === 'number' && payload.gps_fix > 0);
+  const summaryParts = [
+    `pH ${payload.pH.toFixed(2)}`,
+    `${payload.temp_w1.toFixed(1)} °C`,
+    `DO ${payload.do_mgl.toFixed(2)} mg/L`,
+    payload.turb_ntu !== undefined ? `${payload.turb_ntu.toFixed(1)} NTU` : `TDS ${payload.tds_ppm.toFixed(1)} ppm`,
+  ];
+
   return (
     <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
       <Card>
         <View style={styles.row}>
           <ThemedText type="smallBold">{dateLabel(reading.recorded_at)}</ThemedText>
-          <ThemedText type="small" style={{ color: payload.gps_fix ? theme.accent : theme.textSecondary }}>
-            {payload.gps_fix ? 'GPS' : 'No GPS'}
+          <ThemedText type="small" style={{ color: hasGps ? theme.accent : theme.textSecondary }}>
+            {hasGps ? 'GPS' : 'No GPS'}
           </ThemedText>
         </View>
         <ThemedText type="small" themeColor="textSecondary">
-          pH {payload.pH.toFixed(2)} · {payload.temp_w1.toFixed(1)} °C · {payload.turb_ntu.toFixed(1)} NTU
+          {summaryParts.join(' · ')}
         </ThemedText>
         {open && (
           <View style={styles.detail}>

@@ -12,11 +12,22 @@ export type BoatPosition = {
   fixAgeSeconds?: number;
 };
 
-// Newest packet carrying a GNSS position; packets without a fix are skipped.
+function hasValidFix(payload: Reading['payload']): payload is Reading['payload'] & { lat: number; lon: number } {
+  if (payload.gps_fix === false || payload.gps_fix === 0) return false;
+  return (
+    payload.lat !== undefined &&
+    payload.lon !== undefined &&
+    Number.isFinite(payload.lat) &&
+    Number.isFinite(payload.lon) &&
+    (payload.lat !== 0 || payload.lon !== 0)
+  );
+}
+
+// Newest packet carrying a valid GNSS position; unfixed / (0, 0) packets are skipped.
 export function latestBoatPosition(readings: Reading[]): BoatPosition | undefined {
   for (let i = readings.length - 1; i >= 0; i--) {
     const { recorded_at, payload } = readings[i];
-    if (payload.lat !== undefined && payload.lon !== undefined)
+    if (hasValidFix(payload))
       return {
         latitude: payload.lat,
         longitude: payload.lon,
@@ -33,10 +44,10 @@ export function isStale(position: BoatPosition) {
 
 export type TrackPoint = { latitude: number; longitude: number; t: number };
 
-// Every GPS position in the readings, oldest first.
+// Every valid GPS position in the readings, oldest first.
 export function boatTrack(readings: Reading[]): TrackPoint[] {
   return readings.flatMap(({ recorded_at, payload }) =>
-    payload.lat !== undefined && payload.lon !== undefined
+    hasValidFix(payload)
       ? [{ latitude: payload.lat, longitude: payload.lon, t: Date.parse(recorded_at) }]
       : [],
   );

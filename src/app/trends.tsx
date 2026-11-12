@@ -41,10 +41,10 @@ export default function TrendsScreen() {
   const end = readings.length ? Date.parse(readings[readings.length - 1].recorded_at) : 0;
   const points = readings
     .filter((r) => (day ? dayKey(r.recorded_at) === day : Date.parse(r.recorded_at) >= end - hours * 3600000))
-    .map((r) => ({
-      t: Date.parse(r.recorded_at),
-      value: r.payload[metric.key],
-    }));
+    .flatMap((r) => {
+      const value = r.payload[metric.key];
+      return value !== undefined ? [{ t: Date.parse(r.recorded_at), value }] : [];
+    });
   const values = points.map((p) => p.value);
   const fmt = (v: number) => formatValue(metric, v);
 

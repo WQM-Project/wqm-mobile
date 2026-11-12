@@ -2,23 +2,24 @@
 // `short` fits the Trends picker grid.
 export const METRICS = [
   { key: 'pH', label: 'pH', short: 'pH', unit: '', decimals: 2 },
-  { key: 'turb_ntu', label: 'Turbidity', short: 'Turbidity', unit: 'NTU', decimals: 1 },
   { key: 'do_mgl', label: 'Dissolved oxygen', short: 'Oxygen', unit: 'mg/L', decimals: 2 },
-  { key: 'temp_w1', label: 'Water temperature', short: 'Water temp', unit: '°C', decimals: 1 },
   { key: 'tds_ppm', label: 'Dissolved solids', short: 'TDS', unit: 'ppm', decimals: 1 },
-  { key: 'ec_uscm', label: 'Conductivity', short: 'Conductivity', unit: 'µS/cm', decimals: 1 },
+  { key: 'temp_w1', label: 'Water temperature', short: 'Water temp', unit: '°C', decimals: 1 },
   { key: 'orp_mv', label: 'Redox potential', short: 'Redox', unit: 'mV', decimals: 1 },
+  { key: 'temp_air', label: 'Air temperature', short: 'Air temp', unit: '°C', decimals: 1 },
+  { key: 'pressure_hpa', label: 'Pressure', short: 'Pressure', unit: 'hPa', decimals: 1 },
+  { key: 'turb_ntu', label: 'Turbidity', short: 'Turbidity', unit: 'NTU', decimals: 1 },
+  { key: 'ec_uscm', label: 'Conductivity', short: 'Conductivity', unit: 'µS/cm', decimals: 1 },
   { key: 'temp_w2', label: 'Backup water temperature', short: 'Backup temp', unit: '°C', decimals: 1 },
   { key: 'depth_cm', label: 'Depth', short: 'Depth', unit: 'cm', decimals: 1 },
-  { key: 'temp_air', label: 'Air temperature', short: 'Air temp', unit: '°C', decimals: 1 },
   { key: 'humidity', label: 'Humidity', short: 'Humidity', unit: '%', decimals: 1 },
-  { key: 'pressure_hpa', label: 'Pressure', short: 'Pressure', unit: 'hPa', decimals: 1 },
 ] as const;
 
 export type Metric = (typeof METRICS)[number];
 export type MetricKey = Metric['key'];
 
-export function formatValue(metric: Metric, value: number) {
+export function formatValue(metric: Metric, value?: number) {
+  if (value === undefined || !Number.isFinite(value)) return '—';
   return `${value.toFixed(metric.decimals)}${metric.unit ? ` ${metric.unit}` : ''}`;
 }
 

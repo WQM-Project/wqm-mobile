@@ -4,22 +4,30 @@ export type Packet = {
   id: string;
   ts: number;
   pH: number;
-  turb_ntu: number;
   tds_ppm: number;
   do_mgl: number;
-  ec_uscm: number;
   orp_mv: number;
   temp_w1: number;
-  temp_w2: number;
-  depth_cm: number;
   temp_air: number;
-  humidity: number;
   pressure_hpa: number;
-  // Added by the gateway; GPS fields are absent until it has a settled fix.
+  // Optional/reserved sensor fields (omitted on current STM32 build without those probes).
+  turb_ntu?: number;
+  ec_uscm?: number;
+  temp_w2?: number;
+  depth_cm?: number;
+  humidity?: number;
+  // Optional STM32 NEO-M8N GNSS and BNO085 IMU telemetry; gateway overrides GNSS when fixed.
   lat?: number;
   lon?: number;
-  gps_fix?: boolean;
+  alt_m?: number;
+  sog_knots?: number;
+  cog_deg?: number;
+  gps_fix?: boolean | number;
+  sats?: number;
   gps_age_s?: number;
+  heading?: number;
+  pitch?: number;
+  roll?: number;
   utc_s?: number;
 };
 
