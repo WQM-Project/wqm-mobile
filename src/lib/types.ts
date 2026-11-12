@@ -16,7 +16,7 @@ export type Packet = {
   temp_w2?: number;
   depth_cm?: number;
   humidity?: number;
-  // Optional STM32 NEO-M8N GNSS and BNO085 IMU telemetry; gateway overrides GNSS when fixed.
+  // Onboard SIM7600 GNSS supplies primary lat/lon/gps_fix when fixed; optional STM32 GNSS pass-through & BNO085 IMU telemetry.
   lat?: number;
   lon?: number;
   alt_m?: number;
